@@ -37,6 +37,10 @@ There's an optional toggle for multibounce:
 
 ![Multibounce](pics/multibounce.png)
 
+Here's no multibounce, for comparison:
+
+![No multibounce](pics/no-multibounce.png)
+
 This seems to work, mostly. The major issue is likely not with this code.
 Instead, the discontinuities from slerping (whether because of a numerical error
 in my code or insufficient subdivision depth) become significantly more

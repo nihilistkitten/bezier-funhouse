@@ -1548,10 +1548,10 @@ void main() {
           const status = document.getElementById("multibounce").innerText;
           if (status == "turn multibounce on") {
               document.getElementById("multibounce").innerText = "turn multibounce off";
-              multiBounce(false);
+              multiBounce(true);
           } else {
               document.getElementById("multibounce").innerText = "turn multibounce on";
-              multiBounce(true);
+              multiBounce(false);
           }
       }
     </script>
@@ -1567,7 +1567,7 @@ void main() {
     <button onClick="chooseColor('fireball')">fireball</button>
     mirror:
     <button value="sphere -> bezier" id="mirror-select" onclick="chooseMirror();">sphere -> bezier</button>
-    <button value="turn multibounce on" id="multibounce" onclick="toggleMultiBounce()">multibounce on</button>
+    <button value="turn multibounce on" id="multibounce" onclick="toggleMultiBounce()">turn multibounce on</button>
     <br>
     Place spheres or else position a <b>Bézier funhouse mirror</b>.<br>
     Use `ijklaz` to control the light position.<br>
