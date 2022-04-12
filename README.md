@@ -46,3 +46,8 @@ Instead, the discontinuities from slerping (whether because of a numerical error
 in my code or insufficient subdivision depth) become significantly more
 noticeable when multibounce is enabled; presumably this is because the effect is
 cumulative.
+
+Here's another one with multbounce, this time with much less subdivision; this
+is probably my favorite picture to come out of this:
+
+![Multibounce 2](pics/multibounce2.png)

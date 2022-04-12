@@ -284,12 +284,6 @@
 					return NO_INTERSECTION();
 			}
 
-			// recBez(0, 1)
-			// recBez(1, 2)
-			// recBez(2, 3)
-			// recBez(3, 4)
-			// recBez(4, 5)
-
 			ISect recBez7(vec4 R, vec4 d, vec2 p0, vec2 p1, vec2 p2) {
         // compute normals
         vec2 l = normalize(p0 - p1);
@@ -440,7 +434,7 @@
 
 					// return intersection;
           
-					return recBez0(R, d, cp0, cp1, cp2);
+					return recBez7(R, d, cp0, cp1, cp2);
       }
 
       ISect rayClosestWall(vec4 R, vec4 d) {
