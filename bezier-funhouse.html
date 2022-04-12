@@ -645,9 +645,9 @@
           return isect;
       }
 
-			ISect rayIntersectPanel(vec4 R, vec4 d, vec2 p0, vec2 p1) {
+			ISect rayIntersectPanel(vec4 R, vec4 d, vec2 p0, vec2 p1, vec2 nl, vec2 nr) {
 				  // If the ray intersects the linear panel with boundaries at p0 and p1,
-				  // return the intersection.
+				  // return the intersection, with a normal interoplated from nl to nr
 
 					// compute homogenous representation of p
 				  vec4 p = vec4(p0[0], 0.0, p0[1], 1.0);
@@ -666,15 +666,22 @@
 							float iz = intersection.location[2];
 
 							// ensure I is in between p0 and p1
-							bool p0_left_of_i = p0[0] * iz - p0[1] * ix > 0.0;
-							bool p1_left_of_i = p1[0] * iz - p1[1] * ix > 0.0;
+							float p0_cross_i = p0[0] * iz - p0[1] * ix;
+							float p1_cross_i = p1[0] * iz - p1[1] * ix;
 
 							// ensure I is between the floor and the ceiling
+							if ((p0_cross_i >= 0.0) != (p1_cross_i >= 0.0) && iy >= MIRROR_BOT && iy <= MIRROR_TOP) {
 
-							if (p0_left_of_i != p1_left_of_i && iy >= MIRROR_BOT && iy <= MIRROR_TOP) {
-								// i is in the middle
+								// normal slerping
+								float alpha = (ix - p0[0]) / (p1[0] - p0[0]);
+								if (alpha < 0.0 || alpha > 1.0) {
+                    // something has gone wrong, this shouldn't be the case if
+                    // there's an intersection, let's bail
+										return NO_INTERSECTION();
+								}
+								vec2 interp_n = nl * alpha + nr * (1.0 - alpha);
+								intersection.normal = vec4(interp_n[0], 0.0, interp_n[1], 0.0);
 
-								// TODO: normal slerping
 								return intersection;
 							}
 					}
@@ -688,37 +695,83 @@
 			// recBez(3, 4)
 			// recBez(4, 5)
 
-			ISect recBez3(vec4 R, vec4 d, vec2 p0, vec2 p1, vec2 p2) {
-				ISect intersection = rayIntersectPanel(R, d, p0, p1);
+			ISect recBez7(vec4 R, vec4 d, vec2 p0, vec2 p1, vec2 p2) {
+        // compute normals
+        vec2 l = normalize(p0 - p1);
+        vec2 nl = vec2(-l[1], l[0]);
+
+        vec2 r = normalize(p2 - p1);
+        vec2 nr = vec2(r[1], -r[0]);
+
+				vec2 nm = (nl + nr) * 0.5;
+
+				ISect intersection = rayIntersectPanel(R, d, p0, p1, nl, nm);
 				if (intersection.yes == 0) {
-					intersection = rayIntersectPanel(R, d, p1, p2);
+					intersection = rayIntersectPanel(R, d, p1, p2, nm, nr);
 				}
 
 				return intersection;
 			}
 
-			/* #define REC_BEZ(a, b)                                          \
-				ISect a (vec4 R, vec4 d, vec2 p0, vec2 p1, vec2 p2) { 					 \
-					vec2 l0 = p0;                                                    \
-					vec2 r2 = p2;                                                    \
-					vec2 l1 = (p0 + p1) / 0.5;                                       \
-					vec2 r1 = (p2 + p1) / 0.5;                                       \
-					vec2 l2 = (r1 + l1) / 0.5;                                       \
-                                                                           \
-					ISect intersection = b (R, d, l0, l1, l2);      \
-					if (intersection.yes == 0) {                                     \
-						intersection = b (R, d, l2, r1, r2);          \
-					}                                                                \
-                                                                           \
-					return intersection;                                             \
+			ISect recBez6(vec4 R, vec4 d, vec2 p0, vec2 p1, vec2 p2) {
+				vec2 l0 = p0;
+				vec2 r2 = p2;
+				vec2 l1 = (p0 + p1) * 0.5;
+				vec2 r1 = (p2 + p1) * 0.5;
+				vec2 l2 = (r1 + l1) * 0.5;
+				
+				ISect intersection = recBez7(R, d, l0, l1, l2);
+				if (intersection.yes == 0) {
+					intersection = recBez7(R, d, l2, r1, r2);
 				}
-		  
 
-			REC_BEZ(recBez4, recBez5)
-			REC_BEZ(recBez3, recBez4)
-			REC_BEZ(recBez2, recBez3)
-			REC_BEZ(recBez1, recBez2)
-			REC_BEZ(recBez0, recBez1) */
+				return intersection;
+			}
+
+			ISect recBez5(vec4 R, vec4 d, vec2 p0, vec2 p1, vec2 p2) {
+				vec2 l0 = p0;
+				vec2 r2 = p2;
+				vec2 l1 = (p0 + p1) * 0.5;
+				vec2 r1 = (p2 + p1) * 0.5;
+				vec2 l2 = (r1 + l1) * 0.5;
+				
+				ISect intersection = recBez6(R, d, l0, l1, l2);
+				if (intersection.yes == 0) {
+					intersection = recBez6(R, d, l2, r1, r2);
+				}
+
+				return intersection;
+			}
+
+			ISect recBez4(vec4 R, vec4 d, vec2 p0, vec2 p1, vec2 p2) {
+				vec2 l0 = p0;
+				vec2 r2 = p2;
+				vec2 l1 = (p0 + p1) * 0.5;
+				vec2 r1 = (p2 + p1) * 0.5;
+				vec2 l2 = (r1 + l1) * 0.5;
+				
+				ISect intersection = recBez5(R, d, l0, l1, l2);
+				if (intersection.yes == 0) {
+					intersection = recBez5(R, d, l2, r1, r2);
+				}
+
+				return intersection;
+			}
+
+			ISect recBez3(vec4 R, vec4 d, vec2 p0, vec2 p1, vec2 p2) {
+				vec2 l0 = p0;
+				vec2 r2 = p2;
+				vec2 l1 = (p0 + p1) * 0.5;
+				vec2 r1 = (p2 + p1) * 0.5;
+				vec2 l2 = (r1 + l1) * 0.5;
+				
+				ISect intersection = recBez4(R, d, l0, l1, l2);
+				if (intersection.yes == 0) {
+					intersection = recBez4(R, d, l2, r1, r2);
+				}
+
+				return intersection;
+			}
 
 			ISect recBez2(vec4 R, vec4 d, vec2 p0, vec2 p1, vec2 p2) {
 				vec2 l0 = p0;
@@ -726,7 +779,7 @@
 				vec2 l1 = (p0 + p1) * 0.5;
 				vec2 r1 = (p2 + p1) * 0.5;
 				vec2 l2 = (r1 + l1) * 0.5;
-
+				
 				ISect intersection = recBez3(R, d, l0, l1, l2);
 				if (intersection.yes == 0) {
 					intersection = recBez3(R, d, l2, r1, r2);
@@ -791,6 +844,7 @@
 					// }
 
 					// return intersection;
+          
 					return recBez0(R, d, cp0, cp1, cp2);
       }
 
