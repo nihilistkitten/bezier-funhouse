@@ -108,6 +108,8 @@
       uniform float sphereData[70];   // Position/size/color of spheres.
       uniform int   numSpheres;       // Number of valid spheres in the above.
 
+      uniform int   multiBounce;      // perform multiple bounces (0 = no; 1 = yes)
+
       uniform float controlPoints[6]; // Control points of the Beziér mirror.
 
       #define FAR 10.0
@@ -876,6 +878,28 @@
           
           return isect;
       }
+
+      ISect trace_one(vec4 R, vec4 d) {
+          //
+          // See if it hits the mirrored object...
+          // 
+          ISect mirror = rayIntersectMirror(R,d);
+
+          //
+          // If it does hit the mirror, and nothing is blocking that
+          // ray from hitting the mirror, instead send a secondary ray
+          // due to reflection to see what object *it* hits.
+          //
+          if (mirror.yes == 1) {
+              bool blocked = rayHitsSomeSphereBefore(mirror.location, -d, FAR);
+              if (blocked) {
+                mirror.yes = 0;
+              }
+          }
+
+          return mirror;
+
+      }
       
       vec3 trace(vec4 R, vec4 d) {
           //
@@ -912,30 +936,41 @@
           //
           // See if it hits the mirrored object...
           // 
-          ISect mirror = rayIntersectMirror(R,d);
-
-          //
-          // If it does not hit the mirror, we see what object the
-          // primary ray hits.
-          //
           vec4 source = R;
           vec4 direction = d;
 
-          //
-          // If it does hit the mirror, and nothing is blocking that
-          // ray from hitting the mirror, instead send a secondary ray
-          // due to reflection to see what object *it* hits.
-          //
-          if (mirror.yes == 1) {
-              bool blocked = rayHitsSomeSphereBefore(mirror.location, -d, FAR);
-              if (!blocked) {
-                  //
-                  // Compute the reflected ray.
-                  //
-                  source = mirror.location;
-                  vec4 n = normalize(mirror.normal);
-                  direction = normalize(d - 2.0 * dot(d,n) * n);
-              }
+          ISect mirror;
+          vec4 n;
+
+          #define BOUNCE \
+            mirror = trace_one(source, direction); \
+            if (mirror.yes == 1) { \
+              source = mirror.location; \
+              n = normalize(mirror.normal); \
+              direction = normalize(direction - 2.0 * dot(direction,n) * n);
+
+            BOUNCE
+            if (multiBounce == 1) {
+              BOUNCE
+              BOUNCE
+              BOUNCE
+              BOUNCE
+              BOUNCE
+              BOUNCE
+              BOUNCE
+              BOUNCE
+              BOUNCE
+              BOUNCE
+              BOUNCE
+              BOUNCE
+              BOUNCE
+              BOUNCE
+              BOUNCE
+              BOUNCE
+              BOUNCE
+              BOUNCE
+              }}}}}}}}}}}}}}}}}} // need to close all those ifs
+            }
           }
 
           // Find out the color of the surface hit...
@@ -1509,6 +1544,16 @@ void main() {
               sphericalMirror(true);
           }
       }
+      function toggleMultiBounce(){
+          const status = document.getElementById("multibounce").innerText;
+          if (status == "turn multibounce on") {
+              document.getElementById("multibounce").innerText = "turn multibounce off";
+              multiBounce(false);
+          } else {
+              document.getElementById("multibounce").innerText = "turn multibounce on";
+              multiBounce(true);
+          }
+      }
     </script>
   </head>
 
@@ -1522,6 +1567,7 @@ void main() {
     <button onClick="chooseColor('fireball')">fireball</button>
     mirror:
     <button value="sphere -> bezier" id="mirror-select" onclick="chooseMirror();">sphere -> bezier</button>
+    <button value="turn multibounce on" id="multibounce" onclick="toggleMultiBounce()">multibounce on</button>
     <br>
     Place spheres or else position a <b>Bézier funhouse mirror</b>.<br>
     Use `ijklaz` to control the light position.<br>
